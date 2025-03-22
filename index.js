@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+
 const articlesRoute = require('./routes/articles');
 const usersRoute = require('./routes/users');
+const aiRoute = require('./routes/ai'); // 👈 OpenAI route
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,9 +22,12 @@ app.get('/', (req, res) => {
   res.send('Backend is live! ✅');
 });
 
+// ✅ Routes
 app.use('/api/articles', articlesRoute);
 app.use('/api/users', usersRoute);
+app.use('/api/ai', aiRoute); // 👈 AI summary route
 
+// ✅ Health check
 app.get('/api/ping', (req, res) => res.send('pong'));
 
 app.listen(PORT, () => {
