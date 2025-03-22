@@ -7,11 +7,21 @@ const usersRoute = require('./routes/users');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// ✅ Allow all origins (temporary for testing)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
-app.use('/api/articles', articlesRoute); // optional
-app.use('/api/users', usersRoute);       // ✅ user test route
+app.get('/', (req, res) => {
+  res.send('Backend is live! ✅');
+});
+
+app.use('/api/articles', articlesRoute);
+app.use('/api/users', usersRoute);
 
 app.get('/api/ping', (req, res) => res.send('pong'));
 
