@@ -2,12 +2,13 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
-const articlesRoute = require('./routes/articles');
+
+const articlesRoute = require('./routes/admin');
 const usersRoute = require('./routes/users');
 const aiRoute = require('./routes/ai'); // 👈 OpenAI route
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // ✅ Allow all origins (temporary for testing)
 app.use(cors({
@@ -23,7 +24,7 @@ app.get('/', (req, res) => {
 });
 
 // ✅ Routes
-app.use('/api/articles', articlesRoute);
+app.use('/api/admin', articlesRoute);
 app.use('/api/users', usersRoute);
 app.use('/api/ai', aiRoute); // 👈 AI summary route
 
