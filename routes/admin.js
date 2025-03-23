@@ -45,4 +45,29 @@ router.post('/create-user', async (req, res) => {
   return res.status(201).json({ success: true, user: authUser });
 });
 
+
+router.delete('/delete-user/:auth_id', async (req, res) => {
+  const { auth_id } = req.params;
+
+  if (!auth_id) {
+    return res.status(400).json({ success: false, message: 'Missing auth_id' });
+  }
+
+  // 1. Delete from Supabase Auth
+  const { error: authError } = await supabase.auth.admin.deleteUser(auth_id);
+
+  if (authError) {
+    return res.status(500).json({ success: false, message: 'Failed to delete auth user', error: authError.message });
+  }
+
+  // 2. Delete from users table
+  const { error: dbError } = await supabase.from('users').delete().eq('auth_id', auth_id);
+
+  if (dbError) {
+    return res.status(500).json({ success: false, message: 'Deleted from auth, but failed from users table', error: dbError.message });
+  }
+
+  return res.status(200).json({ success: true, message: 'User deleted successfully' });
+});
+
 module.exports = router;
