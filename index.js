@@ -8,6 +8,7 @@ const usersRoute = require('./routes/users');
 const interactionRoutes = require('./routes/interactions');
 const commentRoutes = require('./routes/comments');
 const aiRoute = require('./routes/ai'); // 👈 OpenAI route
+const emailRoute = require('./routes/email'); // New email route
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -31,6 +32,7 @@ app.use('/api/users', usersRoute);
 app.use('/api/interactions', interactionRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/ai', aiRoute); // 👈 AI summary route
+app.use('/api/email', emailRoute); // Add new email route
 
 // ✅ Health check
 app.get('/api/ping', (req, res) => res.send('pong'));
