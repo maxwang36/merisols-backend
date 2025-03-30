@@ -6,6 +6,7 @@ const cors = require('cors');
 const articlesRoute = require('./routes/admin');
 const usersRoute = require('./routes/users');
 const interactionRoutes = require('./routes/interactions');
+const commentRoutes = require('./routes/comments');
 const aiRoute = require('./routes/ai'); // 👈 OpenAI route
 
 const app = express();
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 app.use('/api/admin', articlesRoute);
 app.use('/api/users', usersRoute);
 app.use('/api/interactions', interactionRoutes);
+app.use('/api/comments', commentRoutes);
 app.use('/api/ai', aiRoute); // 👈 AI summary route
 
 // ✅ Health check
