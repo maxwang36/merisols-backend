@@ -1,28 +1,36 @@
 const express = require('express');
+const fetch = require('node-fetch');
+require('dotenv').config();
+
 const router = express.Router();
-const openai = require('../lib/openai');
 
-router.post('/generate-summary', async (req, res) => {
-  const { content } = req.body;
+router.post('/summarize', async (req, res) => {
+  const { text } = req.body;
 
-  if (!content) {
-    return res.status(400).json({ success: false, message: 'Missing content' });
+  if (!text) {
+    return res.status(400).json({ error: 'No text provided' });
   }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: 'You are a helpful AI that summarizes news articles.' },
-        { role: 'user', content: `Summarize this article:\n\n${content}` },
-      ],
+    const response = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-cnn', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.HF_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: text }),
     });
 
-    const summary = response.choices[0].message.content;
-    res.json({ success: true, summary });
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(500).json({ error: data.error });
+    }
+
+    res.json({ summary: data[0]?.summary_text || 'No summary returned' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: 'OpenAI error', error: err.message });
+    console.error('Summarization error:', err);
+    res.status(500).json({ error: 'Something went wrong' });
   }
 });
 
