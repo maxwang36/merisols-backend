@@ -12,6 +12,8 @@ const emailRoute = require('./routes/email'); // New email route
 const scheduleRoutes = require('./routes/schedule');
 const moderatorRoutes = require('./routes/moderator');
 const generalArticleRoutes = require('./routes/articles')
+const stripeRoute = require('./routes/stripe')
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,6 +41,7 @@ app.use('/api/email', emailRoute); // Add new email route
 app.use('/api', scheduleRoutes);
 app.use('/api/moderator', moderatorRoutes);
 app.use('/api/articles', generalArticleRoutes);
+app.use('/api/stripe', stripeRoute); 
 
 
 // ✅ Health check
