@@ -13,6 +13,8 @@ const scheduleRoutes = require('./routes/schedule');
 const moderatorRoutes = require('./routes/moderator');
 const generalArticleRoutes = require('./routes/articles')
 const stripeRoute = require('./routes/stripe')
+const stripeWebhook = require('./routes/stripeWebhook');
+
 
 
 const app = express();
@@ -24,6 +26,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Stripe webhook route - needs raw body middleware and must come FIRST
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/stripe/webhook', stripeWebhook);
 
 app.use(express.json());
 
@@ -41,7 +47,8 @@ app.use('/api/email', emailRoute); // Add new email route
 app.use('/api', scheduleRoutes);
 app.use('/api/moderator', moderatorRoutes);
 app.use('/api/articles', generalArticleRoutes);
-app.use('/api/stripe', stripeRoute); 
+app.use('/api/stripe', stripeRoute);
+
 
 
 // ✅ Health check

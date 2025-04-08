@@ -27,7 +27,7 @@ const checkAuth = async (req, res, next) => {
 
 // POST /api/stripe/create-checkout-session
 router.post('/create-checkout-session', checkAuth, async (req, res) => {
-  const { plan } = req.body; // 'monthly' or 'yearly'
+  const { plan, userId } = req.body; // 'monthly' or 'yearly'
 
   console.log(`Received request to create checkout session for plan: ${plan}`);
 
@@ -66,7 +66,9 @@ router.post('/create-checkout-session', checkAuth, async (req, res) => {
       success_url: `${YOUR_DOMAIN}/subscription-success?session_id={CHECKOUT_SESSION_ID}`, // Redirect URL on success
       cancel_url: `${YOUR_DOMAIN}/subscribe`, // Redirect URL on cancellation
       // customer_email: req.user?.email, // Optional: Prefill email if user is logged in
-      // metadata: { userId: req.user?.id }, // Optional: Attach user ID if needed later in webhooks
+      metadata: {
+        user_id: userId, // 👈 Pass your custom user_id here
+      },
     });
 
     console.log(`Stripe session created successfully: ${session.id}`);
