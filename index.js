@@ -14,6 +14,7 @@ const moderatorRoutes = require('./routes/moderator');
 const generalArticleRoutes = require('./routes/articles')
 const stripeRoute = require('./routes/stripe')
 const stripeWebhook = require('./routes/stripeWebhook');
+const moderationRoutes = require("./routes/moderation");
 const telegramAlertRoute = require('./routes/telegramalerts');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api', scheduleRoutes);
 app.use('/api/moderator', moderatorRoutes);
 app.use('/api/articles', generalArticleRoutes);
 app.use('/api/stripe', stripeRoute);
+app.use("/api", moderationRoutes);
 app.use('/api/telegram', telegramAlertRoute);
 
 
