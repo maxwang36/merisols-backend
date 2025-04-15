@@ -94,20 +94,31 @@ router.post('/send-reply', async (req, res) => {
 
 // New endpoint: Notify admin when user submits article
 router.post('/new-article-notification', async (req, res) => {
-  const { userId, timeSent, priority, category, title } = req.body;
+  const { userId, username, timeSent, priority, category, title, content } = req.body;
+
 
   if (!userId || !title || !category) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
 
   const formattedMessage = `
-    ----------------- User Article Submission -----------------<br><br>
-    <strong>User ID:</strong> ${userId}<br>
-    <strong>Time Sent:</strong> ${new Date(timeSent).toLocaleString()}<br>
-    <strong>Priority:</strong> ${priority || 'Normal'}<br>
-    <strong>Category:</strong> ${category}<br>
-    <strong>Title:</strong> ${title}
-  `;
+  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="text-align: center; font-weight: bold;">USER ARTICLE SUBMISSION</h2>
+    
+    <p><strong>User ID:</strong> ${userId}</p>
+    <p><strong>Username:</strong> ${username || 'Unknown'}</p>
+    <p><strong>Time Sent:</strong> ${new Date(timeSent).toLocaleString()}</p>
+    <p><strong>Priority:</strong> ${priority == 1 ? 'High' : priority == 2 ? 'Medium' : 'Low'}</p>
+    <p><strong>Category:</strong> ${category}</p>
+    <p><strong>Title:</strong> ${title}</p>
+
+    <p><strong>Content:</strong></p>
+    <div style="background-color: #f9f9f9; padding: 15px; border-left: 4px solid #007bff; margin-top: 5px;">
+      ${content ? content.split(/\s+/).slice(0, 100).join(' ') + (content.split(/\s+/).length > 100 ? '...' : '') : 'No content provided'}
+    </div>
+  </div>
+`;
+
 
   try {
     const { data, error } = await resend.emails.send({
