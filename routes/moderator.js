@@ -239,8 +239,7 @@ router.put('/users/:user_id/unban', async (req, res) => {
                 ban_end_date: null,
                 updated_at: new Date()
             })
-            .eq('user_id', user_id)
-            .eq('ban_status', 'hard'); // Ensure we only update if still banned
+            .eq('user_id', user_id);
 
         if (updateError) {
              console.error(`!!! Supabase update failed during unban for user ${user_id} !!!`);
