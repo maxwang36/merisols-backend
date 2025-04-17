@@ -141,7 +141,7 @@ router.delete('/articles/:article_id', async (req, res) => {
 router.get('/users', async (req, res) => {
     console.log("API HIT: GET /api/moderator/users");
     try {
-        const { data, error } = await supabase.from('users').select('user_id, display_name, email, role, created_at').order('created_at', { ascending: false });
+        const { data, error } = await supabase.from('users').select('user_id, display_name, email, role, ban_status, created_at').order('created_at', { ascending: false });
         if (error) throw error;
         console.log(`Found ${data?.length || 0} users.`);
         res.json(data || []);
@@ -168,8 +168,6 @@ router.put('/users/:user_id/ban', async (req, res) => {
         if (fetchError) { /* ... handle error ... */ return res.status(500).json({ message: 'Could not verify target user role' }); }
         if (!userToCheck) { return res.status(404).json({ message: 'Target user not found' }); }
         if (userToCheck.role === 'admin') { return res.status(403).json({ message: 'Cannot ban an admin user' }); }
-        // Avoid re-banning or losing role if already banned
-        if (userToCheck.role === 'banned') { return res.status(400).json({ message: 'User is already banned.' }); }
 
         // *** Store current role THEN ban ***
         const originalRole = userToCheck.role; // Get the role BEFORE banning
@@ -178,8 +176,8 @@ router.put('/users/:user_id/ban', async (req, res) => {
         const { error: updateError } = await supabase
             .from('users')
             .update({
-                role: 'banned',          // Set new role
-                previous_role: originalRole, // Store the original role
+                ban_status: 'hard_banned',
+                ban_end_date: null,
                 updated_at: new Date()
             })
             .eq('user_id', user_id);
@@ -211,9 +209,9 @@ router.put('/users/:user_id/unban', async (req, res) => {
         // Step 1: Find the user and their previous_role IF they are currently banned
         const { data: userToUnban, error: fetchError } = await supabase
             .from('users')
-            .select('previous_role') // Select the stored previous role
+            .select('role')
             .eq('user_id', user_id)
-            .eq('role', 'banned')    // Only target users who are currently banned
+            .eq('ban_status', 'hard_banned')   // Only target users who are currently banned
             .single();
 
         if (fetchError) {
@@ -237,12 +235,12 @@ router.put('/users/:user_id/unban', async (req, res) => {
         const { error: updateError } = await supabase
             .from('users')
             .update({
-                role: roleToRestore,   // Restore original role (or default)
-                previous_role: null,   // Clear the previous_role field
+                ban_status: 'active',
+                ban_end_date: null,
                 updated_at: new Date()
             })
             .eq('user_id', user_id)
-            .eq('role', 'banned'); // Ensure we only update if still banned
+            .eq('ban_status', 'hard'); // Ensure we only update if still banned
 
         if (updateError) {
              console.error(`!!! Supabase update failed during unban for user ${user_id} !!!`);
