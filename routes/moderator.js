@@ -139,14 +139,21 @@ router.delete('/articles/:article_id', async (req, res) => {
 // --- User Policy Management ---
 // GET /users
 router.get('/users', async (req, res) => {
-    console.log("API HIT: GET /api/moderator/users");
+    console.log("API HIT: GET /api/moderator/users (with flag counts)");
+  
     try {
-        const { data, error } = await supabase.from('users').select('user_id, display_name, email, role, ban_status, created_at').order('created_at', { ascending: false });
-        if (error) throw error;
-        console.log(`Found ${data?.length || 0} users.`);
-        res.json(data || []);
-    } catch (err) { /* ... error handling ... */ res.status(500).json({ message: 'Failed to fetch users' });}
-});
+      const { data, error } = await supabase
+        .rpc('get_users_with_flags'); // <-- Use RPC to call the SQL function
+  
+      if (error) throw error;
+  
+      console.log(`Fetched ${data.length} users with flag stats`);
+      res.json(data);
+    } catch (err) {
+      console.error("Error fetching flagged user data:", err.message);
+      res.status(500).json({ message: 'Failed to fetch users', error: err.message });
+    }
+  });
 // PUT /users/:user_id/ban
 router.put('/users/:user_id/ban', async (req, res) => {
     const { user_id } = req.params;
@@ -177,7 +184,7 @@ router.put('/users/:user_id/ban', async (req, res) => {
             .from('users')
             .update({
                 ban_status: 'hard_banned',
-                ban_end_date: null,
+                ban_end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
                 updated_at: new Date()
             })
             .eq('user_id', user_id);
@@ -255,5 +262,63 @@ router.put('/users/:user_id/unban', async (req, res) => {
         res.status(500).json({ message: 'Failed to unban user' });
     }
 });
+
+// PUT /users/:user_id/soft-ban
+router.put('/users/:user_id/soft-ban', async (req, res) => {
+    const { user_id } = req.params;
+  
+    try {
+      const { data: userToCheck, error: fetchError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('user_id', user_id)
+        .single();
+  
+      if (fetchError || !userToCheck) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      if (userToCheck.role !== 'user' && userToCheck.role !== 'journalist') {
+        return res.status(403).json({ message: 'Only users and journalists can be soft banned' });
+      }
+  
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+            ban_status: 'soft_banned',
+            ban_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            updated_at: new Date()
+        })
+        .eq('user_id', user_id);
+  
+      if (updateError) {
+        throw updateError;
+      }
+  
+      res.status(200).json({ message: 'User soft banned successfully' });
+  
+    } catch (err) {
+      console.error('Soft ban error:', err.message);
+      res.status(500).json({ message: 'Soft ban failed', error: err.message });
+    }
+  });
+  
+  router.put('/users/:user_id/unsoft-ban', async (req, res) => {
+    const { user_id } = req.params;
+  
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ ban_status: 'active', ban_end_date: null, updated_at: new Date() })
+        .eq('user_id', user_id);
+  
+      if (error) throw error;
+  
+      res.status(200).json({ message: 'Soft ban lifted successfully' });
+    } catch (err) {
+      console.error('Unsoft ban error:', err.message);
+      res.status(500).json({ message: 'Failed to lift soft ban', error: err.message });
+    }
+  });
 
 module.exports = router;
