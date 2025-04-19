@@ -199,6 +199,29 @@ router.put('/users/:user_id/ban', async (req, res) => {
         }
 
         console.log(`Successfully banned user ${user_id} (was ${originalRole}) by moderator ${actingModeratorId}`);
+
+        // Send email notification to user
+        try {
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('display_name, email')
+            .eq('user_id', user_id)
+            .single();
+        
+          await fetch('https://merisols-backend.onrender.com/api/email/send-ban-notification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'ban',
+              recipientEmail: 'merisolstimes@gmail.com',
+              recipientName: userProfile.display_name
+            })
+          });
+          console.log(`Ban email sent to ${userProfile.email}`);
+        } catch (emailErr) {
+          console.warn('Ban email notification failed:', emailErr.message);
+        }
+        
         res.status(200).json({ message: 'User banned successfully' });
 
     } catch (err) {
@@ -208,59 +231,77 @@ router.put('/users/:user_id/ban', async (req, res) => {
 });
 // PUT /users/:user_id/unban
 router.put('/users/:user_id/unban', async (req, res) => {
-    const { user_id } = req.params;
-    console.log(`API HIT: PUT /api/moderator/users/${user_id}/unban`);
-    if (!user_id) return res.status(400).json({ message: 'User ID is required' });
+  const { user_id } = req.params;
+  console.log(`API HIT: PUT /api/moderator/users/${user_id}/unban`);
+  if (!user_id) return res.status(400).json({ message: 'User ID is required' });
 
-    try {
-        // Step 1: Find the user and their previous_role IF they are currently banned
-        const { data: userToUnban, error: fetchError } = await supabase
-            .from('users')
-            .select('role')
-            .eq('user_id', user_id)
-            .eq('ban_status', 'hard_banned')   // Only target users who are currently banned
-            .single();
+  try {
+    const { data: userToUnban, error: fetchError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('user_id', user_id)
+      .eq('ban_status', 'hard_banned')
+      .single();
 
-        if (fetchError) {
-            console.error(`Error fetching user ${user_id} for unban: ${fetchError.message}`);
-             // If error code PGRST116, it means no rows found (user not found or not banned)
-             if (fetchError.code === 'PGRST116') {
-                 return res.status(404).json({ message: 'User not found or is not currently banned.' });
-             }
-            throw fetchError; // Throw other fetch errors
-        }
-         if (!userToUnban) { // Should be caught by .single() error, but safety check
-             return res.status(404).json({ message: 'User not found or is not currently banned.' });
-         }
-
-
-        // Step 2: Determine the role to restore to
-        const roleToRestore = userToUnban.previous_role || 'user'; // Use previous_role, or default to 'user' if null/empty
-        console.log(`Attempting to restore role to '${roleToRestore}' for user_id: ${user_id}`);
-
-        // Step 3: Update the user
-        const { error: updateError } = await supabase
-            .from('users')
-            .update({
-                ban_status: 'active',
-                ban_end_date: null,
-                updated_at: new Date()
-            })
-            .eq('user_id', user_id);
-
-        if (updateError) {
-             console.error(`!!! Supabase update failed during unban for user ${user_id} !!!`);
-             console.error("Supabase Error:", updateError.message);
-             throw updateError;
-        }
-
-        console.log(`Successfully unbanned user ${user_id}, role set to ${roleToRestore}`);
-        res.status(200).json({ message: 'User unbanned successfully' });
-
-    } catch (err) {
-        console.error(`Catch block triggered for unbanning user ${user_id}:`, err.message);
-        res.status(500).json({ message: 'Failed to unban user' });
+    if (fetchError) {
+      console.error(`Error fetching user ${user_id} for unban: ${fetchError.message}`);
+      if (fetchError.code === 'PGRST116') {
+        return res.status(404).json({ message: 'User not found or is not currently banned.' });
+      }
+      throw fetchError;
     }
+    if (!userToUnban) {
+      return res.status(404).json({ message: 'User not found or is not currently banned.' });
+    }
+
+    const roleToRestore = userToUnban.previous_role || 'user';
+    console.log(`Attempting to restore role to '${roleToRestore}' for user_id: ${user_id}`);
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({
+        ban_status: 'active',
+        ban_end_date: null,
+        updated_at: new Date()
+      })
+      .eq('user_id', user_id);
+
+    if (updateError) {
+      console.error(`!!! Supabase update failed during unban for user ${user_id} !!!`);
+      console.error("Supabase Error:", updateError.message);
+      throw updateError;
+    }
+
+    console.log(`Successfully unbanned user ${user_id}, role set to ${roleToRestore}`);
+
+    // Send unban email
+    try {
+      const { data: userProfile } = await supabase
+        .from('users')
+        .select('display_name, email')
+        .eq('user_id', user_id)
+        .single();
+
+      await fetch('https://merisols-backend.onrender.com/api/email/send-ban-notification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'unban',
+          recipientEmail: 'merisolstimes@gmail.com',
+          recipientName: userProfile.display_name
+        })
+      });
+      console.log(`Unban email sent to ${userProfile.email}`);
+    } catch (emailErr) {
+      console.warn('Unban email notification failed:', emailErr.message);
+    }
+
+    res.status(200).json({ message: 'User unbanned successfully' });
+
+  } catch (err) {
+    console.error(`Catch block triggered for unbanning user ${user_id}:`, err.message);
+    res.status(500).json({ message: 'Failed to unban user' });
+  }
 });
 
 // PUT /users/:user_id/soft-ban
@@ -295,6 +336,28 @@ router.put('/users/:user_id/soft-ban', async (req, res) => {
         throw updateError;
       }
   
+          // Send soft ban email
+      try {
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('display_name, email')
+          .eq('user_id', user_id)
+          .single();
+
+        await fetch('https://merisols-backend.onrender.com/api/email/send-ban-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'softban',
+            recipientEmail: 'merisolstimes@gmail.com',
+            recipientName: userProfile.display_name
+          })
+        });
+        console.log(`Soft ban email sent to ${userProfile.email}`);
+      } catch (emailErr) {
+        console.warn('Soft ban email notification failed:', emailErr.message);
+      }
+
       res.status(200).json({ message: 'User soft banned successfully' });
   
     } catch (err) {
@@ -313,6 +376,29 @@ router.put('/users/:user_id/soft-ban', async (req, res) => {
         .eq('user_id', user_id);
   
       if (error) throw error;
+
+            // Send unsoft ban email
+      try {
+        const { data: userProfile } = await supabase
+          .from('users')
+          .select('display_name, email')
+          .eq('user_id', user_id)
+          .single();
+
+        await fetch('https://merisols-backend.onrender.com/api/email/send-ban-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'unsoftban',
+            recipientEmail: 'merisolstimes@gmail.com',
+            recipientName: userProfile.display_name
+          })
+        });
+        console.log(`Unsoft ban email sent to ${userProfile.email}`);
+      } catch (emailErr) {
+        console.warn('Unsoft ban email notification failed:', emailErr.message);
+      }
+
   
       res.status(200).json({ message: 'Soft ban lifted successfully' });
     } catch (err) {

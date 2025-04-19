@@ -141,4 +141,57 @@ router.post('/new-article-notification', async (req, res) => {
   }
 });
 
+// Notify user about ban/soft ban/unban/unsoft ban
+router.post('/send-ban-notification', async (req, res) => {
+  const { type, recipientEmail, recipientName } = req.body;
+
+  if (!recipientEmail || !recipientName || !type) {
+    return res.status(400).json({ success: false, message: 'Missing email fields' });
+  }
+
+  const typeMap = {
+    ban: {
+      subject: 'You have been banned from Merisols Times',
+      message: `We regret to inform you that your account has been banned for violating our community guidelines.`
+    },
+    softban: {
+      subject: 'Temporary Soft Ban on Your Merisols Times Account',
+      message: `You have been temporarily restricted from posting or commenting for 7 days.`
+    },
+    unban: {
+      subject: 'Your Ban Has Been Lifted',
+      message: `Your account ban has been lifted. You may now access all features again.`
+    },
+    unsoftban: {
+      subject: 'Your Soft Ban Has Been Lifted',
+      message: `Your posting and commenting privileges have been restored.`
+    }
+  };
+
+  const template = typeMap[type];
+
+  try {
+    const { error } = await resend.emails.send({
+      from: 'Merisols Times <onboarding@resend.dev>',
+      to: recipientEmail,
+      subject: template.subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2 style="color: #e74c3c;">Merisols Times</h2>
+          <p>Dear ${recipientName},</p>
+          <p>${template.message}</p>
+          <p style="margin-top: 20px;">For further information, you may contact support or review our community policies.</p>
+        </div>
+      `
+    });
+
+    if (error) throw error;
+
+    res.status(200).json({ success: true, message: 'Email sent.' });
+  } catch (err) {
+    console.error('Failed to send ban-related email:', err.message);
+    res.status(500).json({ success: false, message: 'Email failed', error: err.message });
+  }
+});
+
 module.exports = router;
