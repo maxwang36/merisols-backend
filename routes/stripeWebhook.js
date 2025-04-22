@@ -3,13 +3,13 @@ const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
 
-// Supabase client with service role key
+// Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// ✅ Define this as '/' because it's already mounted at '/api/stripe/webhook'
+// Webhook handler
 router.post('/', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -28,9 +28,17 @@ router.post('/', async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const subscriptionId = session.subscription;
-    const userId = session.metadata?.user_id; // 👈 Your custom user_id
+    const metadata = session.metadata || {};
+    console.log("📦 Metadata received:", metadata);
+
+    const userId = metadata.user_id;
+    const planPriceId = metadata.plan_price_id;
     const customerEmail = session.customer_email;
+
+if (!userId || !planPriceId) {
+  console.error('❌ Missing metadata: user_id or plan_price_id is undefined');
+  return res.status(400).send('Missing user_id or plan_price_id in metadata.');
+}
 
     if (!userId) {
       console.error('❌ No user_id found in session metadata.');
@@ -41,42 +49,84 @@ router.post('/', async (req, res) => {
     console.log('🔗 user_id from metadata:', userId);
 
     try {
-      // Get subscription details from Stripe
-      const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      const priceId = subscription.items.data[0].price.id;
-      console.log('💰 Stripe Price ID:', priceId);
-
-      // Get the corresponding plan from Supabase
+      // 🔥 Get the plan manually by priceId
       const { data: plan, error: planError } = await supabase
         .from('plan')
-        .select('plan_id')
-        .eq('stripe_price_id', priceId)
+        .select('plan_id, duration_days') // Need this field to calculate
+        .eq('stripe_price_id', planPriceId) // you might need to pass price_id in metadata
         .single();
-        console.log('📦 Raw plan data:', plan);
-        console.log('🔍 Stripe price ID looked for:', priceId);
+      console.log("📦 Metadata received:", session.metadata);
+      console.log("🔍 Looking for plan_price_id:", session.metadata?.plan_price_id);
       if (planError || !plan) {
         console.error('❌ Failed to fetch plan:', planError?.message);
         return res.status(500).send('Plan not found.');
       }
 
-      // Insert subscription into Supabase
-      const { error: insertError } = await supabase.from('subscriptions').insert({
-        user_id: userId,
-        plan_id: plan.plan_id,
-        start_date: new Date(subscription.start_date * 1000),
-        end_date: new Date(subscription.current_period_end * 1000),
-        status: 'active'
-      });
+      // Step 1: Check if user has an active subscription
+      const now = new Date();
 
-      if (insertError) {
-        console.error('❌ Failed to insert subscription:', insertError.message);
-        return res.status(500).send('Database insert error.');
+      const { data: existingSub, error: existingError } = await supabase
+        .from('subscriptions')
+        .select('end_date')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .order('end_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingError) {
+        console.warn("⚠️ Could not check existing subscriptions:", existingError.message);
       }
 
-      console.log('✅ Subscription inserted into Supabase for user:', userId);
+      let baseDate = now;
+      if (existingSub?.end_date && new Date(existingSub.end_date) > now) {
+        baseDate = new Date(existingSub.end_date); // Stack on top of current end date
+      }
+
+      const startDate = now;
+      const endDate = new Date(baseDate);
+      endDate.setDate(endDate.getDate() + plan.duration_days); // Add 30 or 365 days
+
+      // Insert subscription into Supabase
+      if (existingSub?.end_date && new Date(existingSub.end_date) > now) {
+        // 🔁 User has active sub, extend it
+        const { error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            end_date: endDate,
+            updated_at: new Date()
+          })
+          .eq('user_id', userId)
+          .eq('status', 'active');
+      
+        if (updateError) {
+          console.error('❌ Failed to extend subscription:', updateError.message);
+          return res.status(500).send('Failed to extend subscription.');
+        }
+      
+        console.log('🔁 Existing subscription extended for user:', userId);
+      } else {
+        // 🆕 No active sub, insert a new one
+        const { error: insertError } = await supabase.from('subscriptions').insert({
+          user_id: userId,
+          plan_id: plan.plan_id,
+          start_date: startDate,
+          end_date: endDate,
+          status: 'active'
+        });
+      
+        if (insertError) {
+          console.error('❌ Failed to insert subscription:', insertError.message);
+          return res.status(500).send('Database insert error.');
+        }
+      
+        console.log('🆕 New subscription inserted into Supabase for user:', userId);
+      }      
+
+      console.log('✅ One-time subscription inserted into Supabase for user:', userId);
     } catch (err) {
-      console.error('❌ Error processing subscription:', err.message);
-      return res.status(500).send('Subscription processing error.');
+      console.error('❌ Error processing payment:', err.message);
+      return res.status(500).send('Processing error.');
     }
   }
 

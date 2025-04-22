@@ -10,8 +10,8 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Define your Price IDs from the Stripe Dashboard (TEST MODE)
 // REPLACE THESE WITH YOUR ACTUAL TEST PRICE IDS
 const PRICE_IDS = {
-  monthly: 'price_1RBbpTIsXxOfBrotZOabyRDe',
-  yearly: 'price_1RBbqJIsXxOfBrotr8EXHSIG'
+  monthly: 'price_1RGiScIsXxOfBrotdm6rGzYh',
+  yearly: 'price_1RGibUIsXxOfBrotLe68CbLF'
 };
 
 // Middleware to check if user is logged in (optional but recommended)
@@ -62,12 +62,13 @@ router.post('/create-checkout-session', checkAuth, async (req, res) => {
           quantity: 1,
         },
       ],
-      mode: 'subscription', // Set mode to subscription
+      mode: 'payment', // Set mode to subscription
       success_url: `${YOUR_DOMAIN}/subscription-success?session_id={CHECKOUT_SESSION_ID}`, // Redirect URL on success
       cancel_url: `${YOUR_DOMAIN}/subscribe`, // Redirect URL on cancellation
       // customer_email: req.user?.email, // Optional: Prefill email if user is logged in
       metadata: {
         user_id: userId, // 👈 Pass your custom user_id here
+        plan_price_id: priceId
       },
     });
 
