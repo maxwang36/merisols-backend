@@ -194,4 +194,50 @@ router.post('/send-ban-notification', async (req, res) => {
   }
 });
 
+// Send newsletter with PDF attachment
+router.post('/send-newsletter-pdf', async (req, res) => {
+  const { recipientEmail = "merisolstimes@gmail.com", recipientName = "Subscriber" } = req.body;
+
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const pdfPath = path.join(__dirname, '../assets/NewsletterTemplate.pdf');
+
+    // 🛡️ Check if PDF file exists first
+    if (!fs.existsSync(pdfPath)) {
+      console.error("❌ Newsletter PDF file missing at:", pdfPath);
+      return res.status(500).json({ success: false, message: "Newsletter PDF file not found." });
+    }
+
+    const pdfBuffer = fs.readFileSync(pdfPath);
+
+    const { data, error } = await resend.emails.send({
+      from: 'Merisols Times <onboarding@resend.dev>',
+      to: 'merisolstimes@gmail.com',  // Force to yourself for testing
+      subject: '📰 Merisols Times Premium Newsletter',
+      html: `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>Hello ${recipientName},</h2>
+          <p>Here is your premium newsletter. Thank you for subscribing!</p>
+        </div>
+      `,
+      attachments: [
+        {
+          filename: 'Merisols_Times_Newsletter.pdf',
+          content: pdfBuffer.toString('base64'),
+          type: 'application/pdf',
+          disposition: 'attachment',
+        },
+      ],
+    });
+
+    if (error) throw error;
+    res.status(200).json({ success: true, message: "Newsletter sent successfully", data });
+  } catch (err) {
+    console.error("Newsletter send failed:", err.message);
+    res.status(500).json({ success: false, message: "Newsletter send failed", error: err.message });
+  }
+});
+
+
 module.exports = router;
