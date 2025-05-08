@@ -124,7 +124,7 @@ router.post('/new-article-notification', async (req, res) => {
     const { data, error } = await resend.emails.send({
       from: 'Merisols Times <onboarding@resend.dev>',
       to: process.env.ADMIN_EMAIL || "delivered@resend.dev",
-      subject: `📝 New Article Submitted: \"${title}\"`,
+      subject: ` New Article Submitted: \"${title}\"`,
       html: formattedMessage
     });
 
@@ -203,9 +203,9 @@ router.post('/send-newsletter-pdf', async (req, res) => {
     const path = require('path');
     const pdfPath = path.join(__dirname, '../assets/NewsletterTemplate.pdf');
 
-    // 🛡️ Check if PDF file exists first
+    //  Check if PDF file exists first
     if (!fs.existsSync(pdfPath)) {
-      console.error("❌ Newsletter PDF file missing at:", pdfPath);
+      console.error(" Newsletter PDF file missing at:", pdfPath);
       return res.status(500).json({ success: false, message: "Newsletter PDF file not found." });
     }
 
@@ -214,7 +214,7 @@ router.post('/send-newsletter-pdf', async (req, res) => {
     const { data, error } = await resend.emails.send({
       from: 'Merisols Times <onboarding@resend.dev>',
       to: 'merisolstimes@gmail.com',  // Force to yourself for testing
-      subject: '📰 Merisols Times Premium Newsletter',
+      subject: ' Merisols Times Premium Newsletter',
       html: `
         <div style="font-family: Arial, sans-serif;">
           <h2>Hello ${recipientName},</h2>
@@ -236,6 +236,75 @@ router.post('/send-newsletter-pdf', async (req, res) => {
   } catch (err) {
     console.error("Newsletter send failed:", err.message);
     res.status(500).json({ success: false, message: "Newsletter send failed", error: err.message });
+  }
+});
+
+
+// Endpoint to forward contact form submissions directly via email
+router.post('/forward-contact-form', async (req, res) => {
+  const { name, email, subject, message } = req.body;
+
+  // Basic validation
+  if (!name || !email || !subject || !message) {
+    console.warn(' Forwarding attempt failed: Missing required fields.');
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
+
+  const recipientEmail = 'merisolstimes@gmail.com'; //  target email
+  const emailSubject = `Contact Form: ${subject}`; // subject line
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+      <h2 style="color: #333;">New Contact Form Submission</h2>
+      <p><strong>From:</strong> ${name}</p>
+      <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
+      <p><strong>Subject:</strong> ${subject}</p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+      <p><strong>Message:</strong></p>
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
+        <p style="white-space: pre-wrap; margin: 0;">${message}</p>
+      </div>
+      <p style="font-size: 0.9em; color: #777; margin-top: 20px;">
+        This message was sent via the Merisols Times contact form.
+      </p>
+    </div>
+  `;
+
+  try {
+    console.log(` Attempting to forward contact message from "${email}" to "${recipientEmail}" with subject "${subject}"`);
+
+    // Use 'resend' instance initialized earlier in the file
+    const { data, error } = await resend.emails.send({
+      from: 'Merisols Contact Form <onboarding@resend.dev>', // Use verified Resend domain/sender
+      to: recipientEmail,
+      reply_to: email, // Set the 'Reply-To' header to the user's email
+      subject: emailSubject,
+      html: emailHtml,
+    });
+
+    // Check if Resend returned an error
+    if (error) {
+      console.error(' Resend API Error:', error);
+      // Throwing an error here will be caught by the catch block below
+      throw new Error(error.message || 'Failed to send email via Resend');
+    }
+
+    // Log success and send response
+    console.log(' Email forwarded successfully via Resend. ID:', data?.id);
+    res.status(200).json({
+      success: true,
+      message: 'Message forwarded successfully',
+      resend_id: data?.id // Optionally return the Resend ID
+    });
+
+  } catch (error) {
+    // Catch any error from the try block (validation, resend call, etc.)
+    console.error(' Error in /forward-contact-form route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to forward message',
+      // Provide error details in development, but maybe be more generic in production
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
   }
 });
 
