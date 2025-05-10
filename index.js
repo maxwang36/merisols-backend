@@ -17,7 +17,7 @@ const stripeRoute = require('./routes/stripe')
 const stripeWebhook = require('./routes/stripeWebhook');
 const moderationRoutes = require("./routes/moderation");
 const telegramAlertRoute = require('./routes/telegramalerts');
-const settingsRoute = require('./routes/settings'); 
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -52,7 +52,7 @@ app.use('/api/articles', generalArticleRoutes);
 app.use('/api/stripe', stripeRoute);
 app.use("/api", moderationRoutes);
 app.use('/api/telegram', telegramAlertRoute);
-app.use('/api/settings', settingsRoute);
+
 
 
 
