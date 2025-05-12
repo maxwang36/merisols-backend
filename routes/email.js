@@ -308,5 +308,84 @@ router.post('/forward-contact-form', async (req, res) => {
   }
 });
 
+// Endpoint to handle "Advertise With Us" form submissions
+router.post('/advertising-inquiry', async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    email,
+    company,
+    website,
+    country,
+    state,
+    identity, // "I am a..."
+    lookingTo // "looking to..."
+  } = req.body;
+
+  // Basic validation
+  if (!firstName || !email || !company) {
+    return res.status(400).json({ success: false, message: 'Missing required fields (First Name, Email, Company).' });
+  }
+
+  const recipientEmail = 'merisolstimes@gmail.com'; // Your target email
+  const emailSubject = `Advertising Inquiry: ${company} - ${firstName} ${lastName || ''}`;
+
+  // Constructing a more detailed HTML email body
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; padding: 25px;">
+      <h2 style="color: #1e90ff; border-bottom: 2px solid #1e90ff; padding-bottom: 10px; margin-bottom: 20px;">New Advertising Inquiry</h2>
+      
+      <h3 style="color: #555; font-size: 1.1em; margin-top: 25px; margin-bottom: 8px;">Contact Information:</h3>
+      <p><strong>Name:</strong> ${firstName} ${lastName || 'N/A'}</p>
+      <p><strong>Email:</strong> <a href="mailto:${email}" style="color: #1e90ff; text-decoration: none;">${email}</a></p>
+      <p><strong>Company:</strong> ${company}</p>
+      <p><strong>Website:</strong> ${website ? `<a href="${website.startsWith('http') ? website : 'http://' + website}" target="_blank" rel="noopener noreferrer" style="color: #1e90ff; text-decoration: none;">${website}</a>` : 'N/A'}</p>
+      <p><strong>Country:</strong> ${country || 'N/A'}</p>
+      <p><strong>State/Region:</strong> ${state || 'N/A'}</p>
+      
+      <h3 style="color: #555; font-size: 1.1em; margin-top: 25px; margin-bottom: 8px;">Inquiry Details:</h3>
+      <p><strong>Identifies as:</strong> ${identity || 'N/A'}</p>
+      <p><strong>Looking to:</strong> ${lookingTo || 'N/A'}</p>
+      
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+      <p style="font-size: 0.9em; color: #777; text-align: center;">
+        This inquiry was submitted via the "Advertise With Us" form on Merisols Times.
+      </p>
+    </div>
+  `;
+
+  try {
+    console.log(`Attempting to send advertising inquiry from "${email}" to "${recipientEmail}"`);
+
+    const { data, error } = await resend.emails.send({
+      from: 'Merisols Advertising <onboarding@resend.dev>', // Use a verified Resend domain/sender
+      to: recipientEmail,
+      reply_to: email, // Set the 'Reply-To' header to the submitter's email
+      subject: emailSubject,
+      html: emailHtml,
+    });
+
+    if (error) {
+      console.error('Resend API Error (Advertising Inquiry):', error);
+      throw new Error(error.message || 'Failed to send advertising inquiry via Resend');
+    }
+
+    console.log('Advertising inquiry email sent successfully via Resend. ID:', data?.id);
+    res.status(200).json({
+      success: true,
+      message: 'Advertising inquiry sent successfully!',
+      resend_id: data?.id
+    });
+
+  } catch (error) {
+    console.error('Error in /advertising-inquiry route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send advertising inquiry.',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 
 module.exports = router;
