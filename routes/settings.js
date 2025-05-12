@@ -7,8 +7,6 @@ const checkAdminRole = require('../middleware/checkAdminRole'); // Import the mi
 const SETTINGS_ROW_ID = 1; // ID of the single row in site_settings
 
 // GET current site settings (including maintenance mode)
-// This endpoint can be public if needed, or protected if only admins should see it.
-// For now, making it public to allow frontend to easily check status.
 router.get('/status', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -18,9 +16,7 @@ router.get('/status', async (req, res) => {
       .single();
 
     if (error) {
-        // If the error is that the row doesn't exist, it means settings haven't been initialized.
-        // This shouldn't happen if the SQL script for insertion was run.
-        if (error.code === 'PGRST116') { // PostgREST error for " exactamente um linha esperada, mas 0 linhas encontradas" (exactly one row expected, but 0 rows found)
+        if (error.code === 'PGRST116') { // error code
             console.warn('Site settings not found, returning default (maintenance_mode: false)');
             return res.json({ maintenance_mode: false, updated_at: null });
         }
@@ -64,8 +60,6 @@ router.put('/status', checkAdminRole, async (req, res) => {
     if (error) throw error;
     
     if (!data) {
-        // This case implies the settings row (id=1) didn't exist to be updated.
-        // This should ideally not happen if the initial SQL setup was correct.
         console.error('Failed to update site settings: settings row not found.');
         return res.status(404).json({ message: 'Site settings not found. Initialization might be needed.' });
     }

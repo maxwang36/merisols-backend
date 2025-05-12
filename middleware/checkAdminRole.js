@@ -1,5 +1,5 @@
 // backend/middleware/checkAdminRole.js
-const supabase = require('../lib/supabase'); // Adjust path as needed
+const supabase = require('../lib/supabase');
 
 const checkAdminRole = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -35,7 +35,7 @@ const checkAdminRole = async (req, res, next) => {
     return res.status(403).json({ message: `Forbidden: Requires admin role` });
   }
 
-  req.user = { ...user, ...userData }; // Attach user info and their role from your 'users' table
+  req.user = { ...user, ...userData }; // Attach user info and their role from 'users' table
   console.log(`Admin access granted for user_id: ${user.id}, role: ${userData.role}`);
   next();
 };

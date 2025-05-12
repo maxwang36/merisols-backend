@@ -70,7 +70,7 @@ router.delete('/comments/:comment_id', async (req, res) => {
 
 // --- Article Management ---
 
-// *** UPDATED Route to fetch REPORTED Articles ***
+// *** Route to fetch REPORTED Articles ***
 router.get('/articles/reported', async (req, res) => {
     console.log("API HIT: GET /api/moderator/articles/reported - Fetching Publisher");
     try {
@@ -116,7 +116,7 @@ router.delete('/articles/:article_id', async (req, res) => {
      console.log(`API HIT: DELETE /api/moderator/articles/${article_id}`);
      if (!article_id) return res.status(400).json({ message: 'Article ID is required' });
      try {
-         // Cascade delete (optional, depends on DB setup)
+         // Cascade delete
          console.log(`Attempting cascade delete for article ${article_id}`);
          await supabase.from('news_images').delete().eq('article_id', article_id);
          await supabase.from('comment').delete().eq('article_id', article_id);
@@ -132,9 +132,6 @@ router.delete('/articles/:article_id', async (req, res) => {
          res.status(500).json({ message: 'Failed to delete article' });
      }
 });
-
-// Remove or comment out old/unused article routes like /articles/pending if desired
-
 
 // --- User Policy Management ---
 // GET /users

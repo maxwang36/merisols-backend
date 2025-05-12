@@ -10,7 +10,7 @@ router.post('/create-user', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing fields' });
   }
 
-  // Step 1: Create Supabase Auth user (admin API)
+  // Create Supabase Auth user (admin API)
   const { data, error } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -24,7 +24,7 @@ router.post('/create-user', async (req, res) => {
 
   const authUser = data.user;
 
-  // Step 2: Insert into your users table
+  // Insert into users table
   const userId = nanoid(10);
 
   const { error: insertError } = await supabase.from('users').insert([
@@ -53,14 +53,14 @@ router.delete('/delete-user/:auth_id', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing auth_id' });
   }
 
-  // 1. Delete from Supabase Auth
+  //  Delete from Supabase Auth
   const { error: authError } = await supabase.auth.admin.deleteUser(auth_id);
 
   if (authError) {
     return res.status(500).json({ success: false, message: 'Failed to delete auth user', error: authError.message });
   }
 
-  // 2. Delete from users table
+  //  Delete from users table
   const { error: dbError } = await supabase.from('users').delete().eq('auth_id', auth_id);
 
   if (dbError) {

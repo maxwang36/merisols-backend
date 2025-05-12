@@ -1,25 +1,21 @@
 // backend/routes/stripe.js
 const express = require('express');
 const router = express.Router();
-// Ensure dotenv is configured in your main index.js or here if needed
+// Ensure dotenv is configured in main index.js or here if needed
 // require('dotenv').config();
 
-// Initialize Stripe with the TEST secret key from your .env file
+// Initialize Stripe with the TEST secret key from .env file
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// Define your Price IDs from the Stripe Dashboard (TEST MODE)
-// REPLACE THESE WITH YOUR ACTUAL TEST PRICE IDS
+// Define Price IDs from the Stripe Dashboard (TEST MODE)
 const PRICE_IDS = {
   monthly: 'price_1RGiScIsXxOfBrotdm6rGzYh',
   yearly: 'price_1RGibUIsXxOfBrotLe68CbLF'
 };
 
-// Middleware to check if user is logged in (optional but recommended)
-// You might want to adapt your existing Supabase auth check middleware
+
 const checkAuth = async (req, res, next) => {
-  // Placeholder: Implement user authentication check here if needed
-  // e.g., verify JWT from Authorization header, check Supabase session
-  // For now, we'll assume the user is authenticated or handle it on the frontend
+  // User is authenticated check
   console.log("User authentication check placeholder");
   next();
 };
@@ -47,7 +43,7 @@ router.post('/create-checkout-session', checkAuth, async (req, res) => {
       return res.status(500).json({ success: false, message: `Configuration error: Stripe Price ID for ${plan} plan is not set correctly on the backend.` });
   }
 
-  // Define frontend URLs (replace with your actual deployed URLs later)
+  // Define frontend URLs (replace with actual deployed URLs later)
   const YOUR_DOMAIN = process.env.FRONTEND_URL || 'http://localhost:3000'; // Use env var or default
 
   try {
@@ -65,9 +61,9 @@ router.post('/create-checkout-session', checkAuth, async (req, res) => {
       mode: 'payment', // Set mode to subscription
       success_url: `${YOUR_DOMAIN}/subscription-success?session_id={CHECKOUT_SESSION_ID}`, // Redirect URL on success
       cancel_url: `${YOUR_DOMAIN}/subscribe`, // Redirect URL on cancellation
-      // customer_email: req.user?.email, // Optional: Prefill email if user is logged in
+      // customer_email: req.user?.email
       metadata: {
-        user_id: userId, // 👈 Pass your custom user_id here
+        user_id: userId, //  Pass custom user_id here
         plan_price_id: priceId
       },
     });

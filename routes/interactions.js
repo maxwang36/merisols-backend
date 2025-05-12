@@ -34,7 +34,7 @@ router.post('/view', async (req, res) => {
   
     let viewQuery = supabase
       .from('interaction')
-      .select('interaction_id', { count: 'exact', head: true }) // 👈 efficient dedup check
+      .select('interaction_id', { count: 'exact', head: true })
       .eq('article_id', article_id)
       .eq('interaction_type', 'view')
       .gte('interaction_date', tenMinutesAgo.toISOString())
@@ -59,7 +59,7 @@ router.post('/view', async (req, res) => {
       return res.status(200).json({ message: 'View already recorded recently. Skipping.' });
     }
   
-    // ✅ Insert view
+    // Insert view
     const { error: insertError } = await supabase.from('interaction').insert([
       {
         article_id,

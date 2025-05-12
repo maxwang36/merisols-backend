@@ -6,10 +6,10 @@ require('dotenv').config();
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 router.post('/high-priority-alert', async (req, res) => {
-  console.log('🔥 Telegram route HIT');
+  console.log(' Telegram route HIT');
   console.log('Payload received:', req.body);
-  console.log('📢 TELEGRAM_BOT:', process.env.TELEGRAM_BOT?.substring(0, 15) + '...');
-  console.log('📢 TELEGRAM_GROUPID:', process.env.TELEGRAM_GROUPID);
+  console.log(' TELEGRAM_BOT:', process.env.TELEGRAM_BOT?.substring(0, 15) + '...');
+  console.log(' TELEGRAM_GROUPID:', process.env.TELEGRAM_GROUPID);
 
   const { userId, username, title, category, priority, timeSent, attachment, content } = req.body;
 
@@ -37,19 +37,19 @@ Content:
 ${contentPreview}`;
 
   try {
-    // ✅ Send text message
+    //  Send text message
     const textResponse = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         chat_id: process.env.TELEGRAM_GROUPID,
         text: message,
-        // parse_mode: 'Markdown' // ❗Commented out for now to prevent markdown errors
+        // parse_mode: 'Markdown' // Commented out for now to prevent markdown errors
       })
     });
 
     const rawText = await textResponse.text();
-    console.log('📨 Telegram sendMessage raw response:', rawText);
+    console.log(' Telegram sendMessage raw response:', rawText);
 
     let parsedTextResponse;
     try {
@@ -62,7 +62,7 @@ ${contentPreview}`;
       throw new Error(`Telegram sendMessage failed: ${parsedTextResponse.description}`);
     }
 
-    // ✅ Optionally send attachment if available
+    //  Optionally send attachment if available
     if (attachment) {
       const photoResponse = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT}/sendPhoto`, {
         method: 'POST',
@@ -74,7 +74,7 @@ ${contentPreview}`;
       });
 
       const rawPhoto = await photoResponse.text();
-      console.log('📷 Telegram sendPhoto raw response:', rawPhoto);
+      console.log(' Telegram sendPhoto raw response:', rawPhoto);
 
       const photoResult = JSON.parse(rawPhoto);
       if (!photoResult.ok) {
@@ -85,7 +85,7 @@ ${contentPreview}`;
     return res.status(200).json({ success: true, message: 'Telegram alert sent successfully' });
 
   } catch (error) {
-    console.error('❌ Telegram alert failed:', error);
+    console.error(' Telegram alert failed:', error);
     return res.status(500).json({
       success: false,
       message: 'Telegram alert failed',

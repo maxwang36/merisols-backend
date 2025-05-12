@@ -1,11 +1,11 @@
 // routes/comments.js
 const express = require('express');
 const router = express.Router();
-const { createClient } = require('@supabase/supabase-js'); // Assuming this is how you import
-const supabase = require('../lib/supabase'); // Use your existing client setup
+const { createClient } = require('@supabase/supabase-js'); 
+const supabase = require('../lib/supabase'); //
 
 // --- POST /api/comments ---
-// (Your existing code for posting new comments - updated with soft ban check)
+//For posting new comments - updated with soft ban check)
 router.post('/', async (req, res) => {
     const { article_id, auth_id, content } = req.body;
 
@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
 
 
 // --- GET /api/comments/:article_id ---
-// (Your existing code for fetching comments for an article - Updated to include comment_id)
+//For fetching comments for an article - Updated to include comment_id)
 router.get('/:article_id', async (req, res) => {
     const { article_id } = req.params;
     if (!article_id) {
@@ -84,7 +84,7 @@ router.get('/:article_id', async (req, res) => {
     }
 });
 
-// --- *** NEW *** PUT /api/comments/:comment_id/flag ---
+// --- PUT /api/comments/:comment_id/flag ---
 // Endpoint to mark a comment as flagged
 router.put('/:comment_id/flag', async (req, res) => {
     const { comment_id } = req.params;
@@ -120,4 +120,4 @@ router.put('/:comment_id/flag', async (req, res) => {
 });
 
 
-module.exports = router; // Make sure this is at the end
+module.exports = router;

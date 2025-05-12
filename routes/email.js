@@ -213,7 +213,7 @@ router.post('/send-newsletter-pdf', async (req, res) => {
 
     const { data, error } = await resend.emails.send({
       from: 'Merisols Times <onboarding@resend.dev>',
-      to: 'merisolstimes@gmail.com',  // Force to yourself for testing
+      to: 'merisolstimes@gmail.com',  
       subject: ' Merisols Times Premium Newsletter',
       html: `
         <div style="font-family: Arial, sans-serif;">
@@ -327,10 +327,9 @@ router.post('/advertising-inquiry', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Missing required fields (First Name, Email, Company).' });
   }
 
-  const recipientEmail = 'merisolstimes@gmail.com'; // Your target email
+  const recipientEmail = 'merisolstimes@gmail.com';
   const emailSubject = `Advertising Inquiry: ${company} - ${firstName} ${lastName || ''}`;
 
-  // Constructing a more detailed HTML email body
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; border-radius: 8px; padding: 25px;">
       <h2 style="color: #1e90ff; border-bottom: 2px solid #1e90ff; padding-bottom: 10px; margin-bottom: 20px;">New Advertising Inquiry</h2>
@@ -358,9 +357,9 @@ router.post('/advertising-inquiry', async (req, res) => {
     console.log(`Attempting to send advertising inquiry from "${email}" to "${recipientEmail}"`);
 
     const { data, error } = await resend.emails.send({
-      from: 'Merisols Advertising <onboarding@resend.dev>', // Use a verified Resend domain/sender
+      from: 'Merisols Advertising <onboarding@resend.dev>',
       to: recipientEmail,
-      reply_to: email, // Set the 'Reply-To' header to the submitter's email
+      reply_to: email, 
       subject: emailSubject,
       html: emailHtml,
     });

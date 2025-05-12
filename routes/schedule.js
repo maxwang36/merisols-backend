@@ -19,12 +19,12 @@ router.post('/schedule-run', async (req, res) => {
       .lte('publication_date', now);
 
     if (fetchError) {
-      console.error('❌ Error fetching scheduled articles:', fetchError.message);
+      console.error('Error fetching scheduled articles:', fetchError.message);
       return res.status(500).json({ message: 'Error fetching scheduled articles' });
     }
 
     if (!articlesToPublish.length) {
-      return res.status(200).json({ message: '✅ No articles ready to publish' });
+      return res.status(200).json({ message: 'No articles ready to publish' });
     }
 
     const articleIds = articlesToPublish.map(a => a.article_id);
@@ -35,13 +35,13 @@ router.post('/schedule-run', async (req, res) => {
       .in('article_id', articleIds);
 
     if (updateError) {
-      console.error('❌ Failed to publish articles:', updateError.message);
+      console.error('Failed to publish articles:', updateError.message);
       return res.status(500).json({ message: 'Failed to publish articles' });
     }
 
-    return res.status(200).json({ message: `✅ Published ${articleIds.length} article(s)` });
+    return res.status(200).json({ message: `Published ${articleIds.length} article(s)` });
   } catch (err) {
-    console.error('❌ Unexpected error:', err.message);
+    console.error('Unexpected error:', err.message);
     return res.status(500).json({ message: 'Internal server error' });
   }
 });
