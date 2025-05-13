@@ -67,7 +67,39 @@ router.delete('/comments/:comment_id', async (req, res) => {
   } catch (err) { /* ... error handling ... */ res.status(500).json({ message: 'Failed to delete comment' });}
 });
 
+// --- Endpoint to unflag a comment ---
+// PUT /api/moderator/comments/:comment_id/unflag
+router.put('/comments/:comment_id/unflag', async (req, res) => {
+  const { comment_id } = req.params;
+  console.log(`API HIT: PUT /api/moderator/comments/${comment_id}/unflag`);
 
+  if (!comment_id) {
+    return res.status(400).json({ message: 'Comment ID is required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('comment')
+      .update({ flagged: false }) // Set flagged to false
+      .eq('comment_id', comment_id)
+      .select(); // Optionally select the updated comment to return it
+
+    if (error) {
+      console.error(`Supabase error unflagging comment ${comment_id}:`, error.message);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'Comment not found or already unflagged.' });
+    }
+
+    console.log(`Successfully unflagged comment ${comment_id}`);
+    res.status(200).json({ message: 'Comment unflagged successfully', comment: data[0] });
+  } catch (err) {
+    console.error(`Error unflagging comment ${comment_id}:`, err.message);
+    res.status(500).json({ message: 'Failed to unflag comment', error: err.message });
+  }
+});
 // --- Article Management ---
 
 // *** Route to fetch REPORTED Articles ***
@@ -131,6 +163,40 @@ router.delete('/articles/:article_id', async (req, res) => {
          console.error(`Error during cascade delete for article ${article_id}:`, err.message);
          res.status(500).json({ message: 'Failed to delete article' });
      }
+});
+
+// --- Endpoint to unflag an article ---
+// PUT /api/moderator/articles/:article_id/unflag
+router.put('/articles/:article_id/unflag', async (req, res) => {
+  const { article_id } = req.params;
+  console.log(`API HIT: PUT /api/moderator/articles/${article_id}/unflag`);
+
+  if (!article_id) {
+    return res.status(400).json({ message: 'Article ID is required' });
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('article')
+      .update({ flagged: false }) // Set flagged to false
+      .eq('article_id', article_id)
+      .select(); // Optionally select the updated article to return it
+
+    if (error) {
+      console.error(`Supabase error unflagging article ${article_id}:`, error.message);
+      throw error;
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ message: 'Article not found or already unflagged.' });
+    }
+
+    console.log(`Successfully unflagged article ${article_id}`);
+    res.status(200).json({ message: 'Article unflagged successfully', article: data[0] });
+  } catch (err) {
+    console.error(`Error unflagging article ${article_id}:`, err.message);
+    res.status(500).json({ message: 'Failed to unflag article', error: err.message });
+  }
 });
 
 // --- User Policy Management ---
