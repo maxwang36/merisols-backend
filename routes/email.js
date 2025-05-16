@@ -201,7 +201,7 @@ router.post('/send-newsletter-pdf', async (req, res) => {
   try {
     const fs = require('fs');
     const path = require('path');
-    const pdfPath = path.join(__dirname, '../assets/NewsletterTemplate.pdf');
+    const pdfPath = path.join(__dirname, '../assets/NewsletterFirstIssue.pdf');
 
     //  Check if PDF file exists first
     if (!fs.existsSync(pdfPath)) {
